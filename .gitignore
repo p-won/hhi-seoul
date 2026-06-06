@@ -1,0 +1,10 @@
+# 원본 데이터 — 로컬 보관, Git 제외
+data/raw_data/
+
+# 분석 결과 CSV (재현 가능하므로 선택적 제외)
+data/*.csv
+
+# Python
+__pycache__/
+*.pyc
+.DS_Store
