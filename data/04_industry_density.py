@@ -91,8 +91,26 @@ def get_scarce_industries(row):
 pivot['과밀업종'] = pivot.apply(get_overconc_industries, axis=1)
 pivot['부족업종'] = pivot.apply(get_scarce_industries, axis=1)
 
-# --- 최종 테이블 결합 ---
-hhi_yr = hhi_close_df[hhi_close_df['년도'] == min(TARGET_YEAR, hhi_close_df['년도'].max())]
+# --- 행정동 개편 매핑: 소상공인 데이터에 구 코드가 남아있는 경우 신코드로 통일 ---
+# 2023년 개편: 신설동(11230515) + 용두동(11230533) → 용신동(11230536)
+DONG_RECODE = {
+    11230515: 11230536,  # 신설동 → 용신동
+    11230533: 11230536,  # 용두동 → 용신동
+}
+top1['행정동코드']  = top1['행정동코드'].replace(DONG_RECODE)
+pivot['행정동코드'] = pivot['행정동코드'].replace(DONG_RECODE)
+
+# 코드 변경으로 중복이 생긴 경우 (신설동·용두동이 모두 용신동으로 바뀐 경우) 첫 번째만 유지
+top1  = top1.drop_duplicates(subset='행정동코드', keep='first')
+pivot = pivot.drop_duplicates(subset='행정동코드', keep='first')
+
+# --- 최종 테이블 결합 (2024~2025 평균) ---
+hhi_yr = (
+    hhi_close_df[hhi_close_df['년도'].isin([2024, 2025])]
+    .groupby('행정동코드')[['HHI', '평균폐업률']]
+    .mean()
+    .reset_index()
+)
 
 final_df = (
     top1

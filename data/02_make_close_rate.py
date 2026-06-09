@@ -47,7 +47,12 @@ mean_close_rate = (
     .rename(columns={'행정동_코드': '행정동코드'})
 )
 
+# 전체 추세 확인용 저장 (2020~2025)
 mean_close_rate.to_csv("행정동별_평균폐업률_2020_2025.csv", index=False, encoding='utf-8-sig')
 
-print(f"폐업률 계산 완료: {mean_close_rate.shape}")
+# 분석용: 2024~2025년만 필터링
+mean_close_rate = mean_close_rate[mean_close_rate['년도'].isin([2024, 2025])]
+mean_close_rate.to_csv("행정동별_평균폐업률_2024_2025.csv", index=False, encoding='utf-8-sig')
+
+print(f"폐업률 계산 완료 (분석용 2024~2025): {mean_close_rate.shape}")
 print(mean_close_rate.head())

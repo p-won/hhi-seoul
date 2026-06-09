@@ -1,6 +1,6 @@
 """
 HHI와 폐업률 결합 및 상관분석
-입력: 행정동별_HHI_2020_2026.csv, 행정동별_평균폐업률_2020_2025.csv
+입력: 행정동별_HHI_2020_2026.csv, 행정동별_평균폐업률_2024_2025.csv (분석용)
 출력: 행정동별_HHI_폐업률_결합.csv, 콘솔 분석 결과
 """
 
@@ -14,10 +14,10 @@ mpl.rc('axes', unicode_minus=False)
 
 # --- 데이터 로드 ---
 final_hhi = pd.read_csv("행정동별_HHI_2020_2026.csv", encoding='utf-8-sig')
-mean_close_rate = pd.read_csv("행정동별_평균폐업률_2020_2025.csv", encoding='utf-8-sig')
+mean_close_rate = pd.read_csv("행정동별_평균폐업률_2024_2025.csv", encoding='utf-8-sig')
 
-# 2025년까지만 결합 (폐업률 데이터 범위)
-hhi_close_df = final_hhi[final_hhi['년도'] <= 2025].merge(
+# 분석 대상: 2024~2025년만 사용
+hhi_close_df = final_hhi[final_hhi['년도'].isin([2024, 2025])].merge(
     mean_close_rate,
     on=['년도', '행정동코드'],
     how='left'

@@ -3,7 +3,14 @@
   <component name="CsvFileAttributes">
     <option name="attributeMap">
       <map>
-        <entry key="/data/raw_data/store-dong.csv">
+        <entry key="/data/crawling/annual_franchise_ratio.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/crawling/seoul_franchise_ratio.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -24,6 +31,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="/data/행정동별_최종분석_v2.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="/data/행정동별_HHI_2020_2026.csv">
           <value>
             <Attribute>
@@ -32,6 +46,13 @@
           </value>
         </entry>
         <entry key="/data/행정동별_HHI_폐업률_결합.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/행정동별_상권타입.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -53,6 +74,13 @@
           </value>
         </entry>
         <entry key="/data/행정동별_최종분석_v2.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="/data/행정동별_최종분석_v3.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
