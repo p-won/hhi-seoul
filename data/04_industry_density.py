@@ -1,13 +1,13 @@
 """
 업종 점유율 순위, 대표 업종, 과밀/부족 업종 분석
-입력: 행정동별_업종점유율_2020_2026.csv, 행정동별_HHI_폐업률_결합.csv
+입력: 행정동별_업종점유율_2020_2025.csv, 행정동별_HHI_폐업률_결합.csv
 출력: 행정동별_최종분석.csv  — HHI, 폐업률, 대표업종, 점유율 순위 통합 테이블
 """
 
 import pandas as pd
 
 # --- 데이터 로드 ---
-share_df = pd.read_csv("행정동별_업종점유율_2020_2026.csv", encoding='utf-8-sig')
+share_df = pd.read_csv("행정동별_업종점유율_2020_2025.csv", encoding='utf-8-sig')
 hhi_close_df = pd.read_csv("행정동별_HHI_폐업률_결합.csv", encoding='utf-8-sig')
 
 # 분석 기준 연도 (가장 최근)
@@ -27,17 +27,17 @@ share_yr['점유율순위'] = (
 # --- 대표 업종 (점유율 1위) ---
 top1 = (
     share_yr[share_yr['점유율순위'] == 1]
-    [['행정동코드', '행정동명', '상권업종중분류명', '점유율']]
+    [['행정동코드', '행정동명', '통합카테고리', '점유율']]
     .rename(columns={
-        '상권업종중분류명': '대표업종',
+        '통합카테고리': '대표업종',
         '점유율': '대표업종_점유율',
     })
 )
 
-# 동점 1위가 여럿이면 업체수 기준으로 하나만 선택
+# 동점 1위가 여럿이면 업체수가 많은 업종 하나만 선택
 top1 = top1.merge(
-    share_yr[['행정동코드', '상권업종중분류명', '업체수']].rename(
-        columns={'상권업종중분류명': '대표업종'}
+    share_yr[['행정동코드', '통합카테고리', '업체수']].rename(
+        columns={'통합카테고리': '대표업종'}
     ),
     on=['행정동코드', '대표업종'],
     how='left'
@@ -48,10 +48,10 @@ top1 = (
     .drop(columns='업체수')
 )
 
-# --- 전국(서울) 평균 점유율 (기준값) ---
+# --- 서울 전체 평균 점유율 (과밀/부족 기준값) ---
 seoul_avg = (
     share_yr
-    .groupby('상권업종중분류명')['점유율']
+    .groupby('통합카테고리')['점유율']
     .mean()
     .rename('서울평균점유율')
 )
@@ -59,7 +59,7 @@ seoul_avg = (
 # --- 행정동별 업종 점유율 피벗 ---
 pivot = share_yr.pivot_table(
     index=['행정동코드', '행정동명'],
-    columns='상권업종중분류명',
+    columns='통합카테고리',
     values='점유율',
     aggfunc='sum',
     fill_value=0,
@@ -67,9 +67,16 @@ pivot = share_yr.pivot_table(
 pivot.columns.name = None
 pivot = pivot.reset_index()
 
-# --- 과밀 업종 (서울 평균의 1.5배 초과) ---
+# --- 과밀/부족 업종 판별 ---
 industry_cols = [c for c in pivot.columns if c not in ('행정동코드', '행정동명')]
+
+# 과밀: 해당 동 점유율이 서울 평균의 1.5배 초과 (약 상위 10%)
 OVERCONC_THRESHOLD = 1.5
+
+# 부족: 서울 평균의 0.5배 미만, 단 서울 평균이 5% 이상인 주요 업종만 대상
+#   (서울 평균 5% 이상 업종: 한식·커피·호프·분식·제과·치킨 6개)
+SCARCE_THRESHOLD = 0.5
+SCARCE_MIN_AVG = 0.05
 
 def get_overconc_industries(row):
     overcrowded = [
@@ -79,32 +86,20 @@ def get_overconc_industries(row):
     return ', '.join(overcrowded) if overcrowded else None
 
 def get_scarce_industries(row):
-    # 서울 평균의 50% 미만이면서 서울 평균 자체가 5% 이상인 업종
     scarce = [
         ind for ind in industry_cols
         if ind in seoul_avg.index
-        and seoul_avg[ind] >= 0.05
-        and row[ind] < seoul_avg[ind] * 0.5
+        and seoul_avg[ind] >= SCARCE_MIN_AVG
+        and row[ind] < seoul_avg[ind] * SCARCE_THRESHOLD
     ]
     return ', '.join(scarce) if scarce else None
 
 pivot['과밀업종'] = pivot.apply(get_overconc_industries, axis=1)
 pivot['부족업종'] = pivot.apply(get_scarce_industries, axis=1)
 
-# --- 행정동 개편 매핑: 소상공인 데이터에 구 코드가 남아있는 경우 신코드로 통일 ---
-# 2023년 개편: 신설동(11230515) + 용두동(11230533) → 용신동(11230536)
-DONG_RECODE = {
-    11230515: 11230536,  # 신설동 → 용신동
-    11230533: 11230536,  # 용두동 → 용신동
-}
-top1['행정동코드']  = top1['행정동코드'].replace(DONG_RECODE)
-pivot['행정동코드'] = pivot['행정동코드'].replace(DONG_RECODE)
-
-# 코드 변경으로 중복이 생긴 경우 (신설동·용두동이 모두 용신동으로 바뀐 경우) 첫 번째만 유지
-top1  = top1.drop_duplicates(subset='행정동코드', keep='first')
-pivot = pivot.drop_duplicates(subset='행정동코드', keep='first')
-
-# --- 최종 테이블 결합 (2024~2025 평균) ---
+# --- 최종 테이블 결합 ---
+# HHI·폐업률은 행정동별_HHI_폐업률_결합.csv의 2024~2025 평균 사용
+# 행정동 개편(용신동·개포3동·상일1동·상일2동)은 01·02코드에서 이미 통일 처리됨
 hhi_yr = (
     hhi_close_df[hhi_close_df['년도'].isin([2024, 2025])]
     .groupby('행정동코드')[['HHI', '평균폐업률']]
