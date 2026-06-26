@@ -185,6 +185,76 @@ print('저장 완료: plot_industry_status_bar.png')
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# [그래프 2-3] 행정동별 한식 소분류 1위 분포 (2025년 기준)
+# - 각 행정동에서 한식 소분류 중 점포 수가 가장 많은 소분류를 집계
+# - 시사점: 서울 음식업 상권에서 한식이 전체 대표업종 1위임에도
+#           그 안의 소분류가 백반/한정식 위주로 쏠려있는지,
+#           혹은 동마다 다양한 한식 소분류가 분포하는지 확인 가능
+# ══════════════════════════════════════════════════════════════════════════════
+raw = pd.read_csv('raw_data/소상공인시장진흥공단_상가(상권)정보_서울_202503.csv',
+                  encoding='utf-8-sig', low_memory=False)
+
+# 한식만, 서울 행정동 코드 있는 행만
+hanshik = raw[
+    (raw['상권업종중분류명'] == '한식') &
+    (raw['행정동코드'].notna())
+].copy()
+hanshik['행정동코드'] = hanshik['행정동코드'].astype(int)
+
+# 행정동 × 소분류 점포 수 집계
+sub_counts = (
+    hanshik.groupby(['행정동코드', '상권업종소분류명'])
+    .size()
+    .reset_index(name='점포수')
+)
+
+# 행정동별 1위 소분류
+top_sub = (
+    sub_counts.sort_values('점포수', ascending=False)
+    .drop_duplicates(subset='행정동코드')
+)
+
+# 소분류별 행정동 수 집계 → 많은 순 정렬
+sub_dist = top_sub['상권업종소분류명'].value_counts().sort_values(ascending=True)
+
+# 서울 전체 소분류 점포 수 (왼쪽 패널용)
+total_sub = (
+    hanshik.groupby('상권업종소분류명')
+    .size()
+    .reset_index(name='점포수')
+    .sort_values('점포수', ascending=True)
+)
+
+# 두 패널 나란히
+fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+# ── 왼쪽: 서울 전체 소분류 점포 수 ──
+bars0 = axes[0].barh(total_sub['상권업종소분류명'], total_sub['점포수'],
+                     color='#EF9A9A', edgecolor='none')
+for bar, val in zip(bars0, total_sub['점포수']):
+    axes[0].text(val + 50, bar.get_y() + bar.get_height() / 2,
+                 f'{val:,}', va='center', fontsize=8)
+axes[0].set_xlabel('점포 수')
+axes[0].set_title('서울 전체 한식 소분류 점포 수\n(2025년 3월 기준)')
+axes[0].grid(axis='x', linestyle='--', alpha=0.4)
+
+# ── 오른쪽: 행정동별 1위 소분류 분포 ──
+bars1 = axes[1].barh(sub_dist.index, sub_dist.values,
+                     color='#EF5350', edgecolor='none')
+for bar, val in zip(bars1, sub_dist.values):
+    axes[1].text(val + 0.5, bar.get_y() + bar.get_height() / 2,
+                 str(val), va='center', fontsize=9)
+axes[1].set_xlabel('행정동 수')
+axes[1].set_title('행정동별 한식 소분류 1위 분포\n(2025년 3월 기준)')
+axes[1].grid(axis='x', linestyle='--', alpha=0.4)
+
+fig.suptitle('한식 소분류 분석', fontsize=13, fontweight='bold')
+plt.tight_layout()
+plt.savefig('plot_hanshik_sub.png', dpi=150)
+print('저장 완료: plot_hanshik_sub.png')
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # [그래프 3] 상권타입 분포 바차트
 # - 직장/상주인구 비율 기반으로 분류한 오피스형·혼합형·주거형 행정동 수
 # - 시사점: 서울 음식업 상권이 주거형 중심임을 확인,
